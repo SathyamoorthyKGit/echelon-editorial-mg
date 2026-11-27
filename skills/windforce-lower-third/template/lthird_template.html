@@ -1,0 +1,92 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+@font-face { font-family: 'PF-Reg'; src: url('../fonts/PlayfairDisplay-Regular.ttf'); }
+@font-face { font-family: 'PF-Ital'; src: url('../fonts/PlayfairDisplay-Italic.ttf'); }
+* { margin:0; padding:0; box-sizing:border-box; }
+html,body { width:1080px; height:1920px; overflow:hidden; background:transparent; }
+#tick {
+  position:absolute; left:94px; top:1500px; width:6px; height:46px; background:#F2B01C; border-radius:3px;
+  transform:scaleY(0); transform-origin:top;
+}
+#name {
+  position:absolute; left:126px; top:1486px; font-family:'PF-Reg',serif; font-weight:700; font-size:54px; color:#F3EEE4; letter-spacing:-0.01em; white-space:nowrap;
+  text-shadow: 0.6px 0 0 currentColor, -0.6px 0 0 currentColor;
+}
+#name span { display:inline-block; opacity:0; filter:blur(8px); transform:translateY(10px); }
+#rule {
+  position:absolute; left:126px; top:1566px; height:2px; background:rgba(243,238,228,.55); width:0px;
+}
+#role1 {
+  position:absolute; left:126px; top:1584px; font-family:'PF-Ital',serif; font-size:31px; color:#F3EEE4; letter-spacing:-0.005em; white-space:nowrap;
+}
+#role1 span { display:inline-block; opacity:0; filter:blur(6px); transform:translateY(8px); margin-right:0.26em; }
+#role2 {
+  position:absolute; left:126px; top:1626px; font-family:'PF-Ital',serif; font-size:31px; color:#F3EEE4; letter-spacing:-0.005em; white-space:nowrap;
+}
+#role2 span { display:inline-block; opacity:0; filter:blur(6px); transform:translateY(8px); margin-right:0.26em; }
+</style>
+</head>
+<body>
+<div id="tick"></div>
+<div id="name"></div>
+<div id="rule"></div>
+<div id="role1"></div>
+<div id="role2"></div>
+<script>
+const gC = (x) => x < 0 ? 0 : x > 1 ? 1 : x;
+const gOUT = (x) => 1 - Math.pow(1 - gC(x), 4);
+const gIO = (x) => { x = gC(x); return x < .5 ? 4*x*x*x : 1 - Math.pow(-2*x+2,3)/2; };
+
+function words(txt) { return txt.split(' ').map(w => { const s = document.createElement('span'); s.textContent = w + ' '; return s; }); }
+const nameEl = document.getElementById('name');
+const role1El = document.getElementById('role1');
+const role2El = document.getElementById('role2');
+// ---- EDIT PER PROJECT: swap these three strings for the new name/role ----
+const nameWords = words('{{NAME}}'); nameWords.forEach(s => nameEl.append(s));
+const role1Words = words('{{ROLE_LINE_1}}'); role1Words.forEach(s => role1El.append(s));
+const role2Words = words('{{ROLE_LINE_2}}'); role2Words.forEach(s => role2El.append(s));
+// Example used on WindForce H02: NAME='Manjula Perera', ROLE_LINE_1='Managing Director,', ROLE_LINE_2='WindForce PLC.'
+// If you only need one role line, set ROLE_LINE_2 to '' and skip rendering #role2 (or delete its div/CSS).
+
+function typeOn(spans, t, t0, t1) {
+  const n = spans.length, dt = Math.max(0.01, (t1 - t0) / n);
+  spans.forEach((s, i) => {
+    const p = gOUT((t - t0 - i * dt) / 0.3);
+    s.style.opacity = p.toFixed(3);
+    s.style.filter = p < 0.999 ? `blur(${((1-p)*8).toFixed(1)}px)` : 'none';
+    s.style.transform = `translateY(${((1-p)*10).toFixed(1)}px)`;
+  });
+}
+function exitOut(spans, e) {
+  spans.forEach(s => { s.style.opacity = (1-gIO(e)).toFixed(3); s.style.filter='none'; s.style.transform = `translateY(${(-gIO(e)*10).toFixed(1)}px)`; });
+}
+
+const T_IN0 = 0.0, TICK_D = 0.28;
+const NAME0 = 0.22, NAME1 = 0.82;
+const RULE0 = 0.5, RULE1 = 0.78;
+const ROLE1_0 = 0.72, ROLE1_1 = 1.12;
+const ROLE2_0 = 1.05, ROLE2_1 = 1.5;
+const EXIT0 = 4.15, EXIT1 = 4.75;
+
+window.setT = function(t) {
+  const tick = document.getElementById('tick'), rule = document.getElementById('rule');
+  if (t < EXIT0) {
+    tick.style.transform = 'scaleY(' + gOUT((t - T_IN0) / TICK_D).toFixed(3) + ')';
+    rule.style.width = (gOUT((t - RULE0) / (RULE1 - RULE0)) * 420).toFixed(1) + 'px';
+    typeOn(nameWords, t, NAME0, NAME1);
+    typeOn(role1Words, t, ROLE1_0, ROLE1_1);
+    typeOn(role2Words, t, ROLE2_0, ROLE2_1);
+  } else {
+    const e = gC((t - EXIT0) / (EXIT1 - EXIT0));
+    tick.style.transform = 'scaleY(' + (1 - gIO(e)).toFixed(3) + ')';
+    rule.style.width = ((1 - gIO(e)) * 420).toFixed(1) + 'px';
+    exitOut(nameWords, e); exitOut(role1Words, e); exitOut(role2Words, e);
+  }
+};
+window.setT(0);
+</script>
+</body>
+</html>
